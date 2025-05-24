@@ -64,7 +64,7 @@ const fetchReadme = async (
       if (res.ok) {
         return await res.text();
       }
-    } catch {}
+    } catch { }
   }
 
   return null;
@@ -133,7 +133,7 @@ app.get("/trending", async (c) => {
   }
 });
 
-const scheduled: ExportedHandlerScheduledHandler<Env> = async (
+export const scheduled: ExportedHandlerScheduledHandler<Env> = async (
   _event,
   env,
   _ctx,
@@ -207,11 +207,6 @@ app.get("/feed", async (c) => {
     return c.text("Internal server error", 500);
   }
 });
-
-export default {
-  fetch: app.fetch,
-  scheduled,
-};
 
 export const getApp = (
   handler: (
