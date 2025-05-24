@@ -1,4 +1,4 @@
-import { Calendar, GitFork, Rss, Star } from "lucide-react";
+import { Calendar, GitFork, Rss, Star, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { TrendingRepoWithSummary } from "server";
 
@@ -48,7 +48,14 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <p className="text-gray-600 dark:text-gray-400">読み込み中...</p>
+      </div>
+    </div>
+  );
   if (error) return <div className="text-red-500">Error: {error}</div>;
   if (!repos) return null;
 
