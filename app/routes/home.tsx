@@ -5,7 +5,7 @@ import type { TrendingRepoWithSummary } from "server";
 export function meta() {
   return [
     { title: "GitHub Trending 日本語まとめ" },
-    { name: "description", content: "GitHub Trending 日本語まとめ" },
+    { name: "description", content: "1日の GitHub Trending を日本語で紹介" },
   ];
 }
 
