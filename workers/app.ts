@@ -1,5 +1,5 @@
 import { createRequestHandler } from "react-router";
-import { getApp } from "server";
+import { getApp, scheduled } from "server";
 
 declare module "react-router" {
   export interface AppLoadContext {
@@ -21,4 +21,7 @@ const app = getApp(async (request, env, ctx) => {
   });
 });
 
-export default app satisfies ExportedHandler<Env>;
+export default {
+  fetch: app.fetch,
+  scheduled,
+};

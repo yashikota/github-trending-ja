@@ -64,7 +64,7 @@ const fetchReadme = async (
       if (res.ok) {
         return await res.text();
       }
-    } catch { }
+    } catch {}
   }
 
   return null;
