@@ -64,9 +64,12 @@ const fetchReadme = async (
       if (res.ok) {
         return await res.text();
       }
-    } catch {}
+    } catch (error) {
+      console.error(`${owner}/${name}/${branch}ブランチからのREADME取得失敗:`, error);
+    }
   }
 
+  console.error(`${owner}/${name}: どのブランチからもREADMEを取得できませんでした`);
   return null;
 };
 
@@ -82,7 +85,8 @@ const summarizeReadme = async (
       contents: `以下のREADMEの内容を日本語で短く要約せよ。100文字以内で\n\n${readme}`,
     });
     return response.text || "要約失敗";
-  } catch {
+  } catch (error) {
+    console.error("Gemini API呼び出し失敗:", error);
     return "要約失敗";
   }
 };
