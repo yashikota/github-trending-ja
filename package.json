@@ -6,7 +6,6 @@
     "build": "NODE_ENV=production react-router build",
     "cf-typegen": "wrangler types",
     "deploy": "pnpm build && wrangler deploy",
-    "dev": "react-router dev",
     "preview": "pnpm build && wrangler dev --remote",
     "typecheck": "npm run cf-typegen && react-router typegen && tsc -b",
     "check": "biome check --write ."
