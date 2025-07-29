@@ -55,21 +55,33 @@ const fetchReadme = async (
   owner: string,
   name: string,
 ): Promise<string | null> => {
-  const branches = ["main", "master"];
+  const branches = ["main", "master", "release"];
+  const readmePaths = [
+    "README.md",
+    "readme.md",
+    "README.rst",
+    "readme.rst",
+    ".github/README.md",
+    ".github/readme.md",
+    ".github/README.rst",
+    ".github/readme.rst"
+  ];
 
   for (const branch of branches) {
-    const url = `https://raw.githubusercontent.com/${owner}/${name}/${branch}/README.md`;
-    try {
-      const res = await fetch(url);
-      if (res.ok) {
-        return await res.text();
+    for (const path of readmePaths) {
+      const url = `https://raw.githubusercontent.com/${owner}/${name}/${branch}/${path}`;
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          return await res.text();
+        }
+      } catch (error) {
+        console.error(`${owner}/${name}/${branch}/${path}からのREADME取得失敗:`, error);
       }
-    } catch (error) {
-      console.error(`${owner}/${name}/${branch}ブランチからのREADME取得失敗:`, error);
     }
   }
 
-  console.error(`${owner}/${name}: どのブランチからもREADMEを取得できませんでした`);
+  console.error(`${owner}/${name}: どのパスからもREADMEを取得できませんでした`);
   return null;
 };
 
