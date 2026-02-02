@@ -1,0 +1,17 @@
+# Binary
+app
+github-trending-ja
+
+# env
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# misc
+.DS_Store
+
+# data output
+public/data.json
+public/feed.xml

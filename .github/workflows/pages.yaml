@@ -1,0 +1,58 @@
+name: Generate and Deploy
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # 毎日 UTC 00:00（日本時間 09:00）
+  workflow_dispatch: # 手動実行も可能に
+
+env:
+  OLLAMA_MODEL: translategemma:4b
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: go.mod
+
+      # Ollamaのインストール
+      - name: Install Ollama
+        run: curl -fsSL https://ollama.com/install.sh | sh
+
+      # Ollamaモデルのキャッシュ
+      - name: Cache Ollama models
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.ollama/models
+          key: ollama-${{ env.OLLAMA_MODEL }}
+
+      # Ollamaサーバーを起動
+      - name: Start Ollama server
+        run: |
+          ollama serve &
+          sleep 5
+
+      # モデルをpull
+      - name: Pull Ollama model
+        run: ollama pull ${{ env.OLLAMA_MODEL }}
+
+      - name: Run
+        run: go run .
+        env:
+          OLLAMA_MODEL: ${{ env.OLLAMA_MODEL }}
+
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
+        with:
+          path: ./public
+
+      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
