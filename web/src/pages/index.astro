@@ -1,0 +1,188 @@
+---
+import '../styles/global.css';
+---
+
+<html lang="ja">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content="GitHub Trending 日本語まとめ" />
+		<title>GitHub Trending 日本語まとめ</title>
+		<link rel="alternate" type="application/rss+xml" title="GitHub Trending 日本語まとめ" href="/feed" />
+	</head>
+	<body class="bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen">
+		<div id="app" class="max-w-2xl mx-auto p-4">
+			<!-- Loading -->
+			<div id="loading" class="flex items-center justify-center min-h-[50vh]">
+				<div class="flex flex-col items-center gap-4">
+					<svg class="w-8 h-8 animate-spin text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+					</svg>
+					<p class="text-gray-600 dark:text-gray-400">読み込み中...</p>
+				</div>
+			</div>
+
+			<!-- Error -->
+			<div id="error" class="hidden text-red-500 text-center py-8"></div>
+
+			<!-- Content -->
+			<div id="content" class="hidden">
+				<div class="flex items-center justify-between mb-4">
+					<h1 class="text-2xl font-bold">GitHub Trending 日本語まとめ</h1>
+					<a href="/feed" class="text-orange-500 hover:underline flex items-center gap-1">
+						<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7m-6 0a1 1 0 11-2 0 1 1 0 012 0z" />
+						</svg>
+						RSS
+					</a>
+				</div>
+				<p class="text-gray-600 dark:text-gray-400 mb-8">
+					1日の
+					<a href="https://github.com/trending" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline mx-1">
+						GitHub Trending
+					</a>
+					を日本語で紹介
+				</p>
+
+				<div id="date" class="text-center mb-8">
+					<p class="text-xl font-semibold text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
+						<svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+						</svg>
+						<span id="generated-at"></span>
+					</p>
+				</div>
+
+				<ul id="repos" class="space-y-4"></ul>
+			</div>
+		</div>
+
+		<script>
+			import { marked } from 'marked';
+
+			// データURL（GitHub Pages から取得）
+			const DATA_URL = import.meta.env.PUBLIC_DATA_URL || 'https://yashikota.github.io/github-trending-ja/data.json';
+
+			function formatDate(dateString: string): string {
+				const date = new Date(dateString);
+				const options: Intl.DateTimeFormatOptions = {
+					year: 'numeric',
+					month: 'long',
+					day: 'numeric',
+					timeZone: 'Asia/Tokyo',
+				};
+				return date.toLocaleDateString('ja-JP', options) + 'のトレンド';
+			}
+
+			interface Repo {
+				title: string;
+				url: string;
+				summary: string;
+				language?: string;
+				languageColor?: string;
+				stars: string;
+				addStars: string;
+				forks: string;
+			}
+
+			function renderMarkdown(md: string): string {
+				try {
+					return marked.parse(md) as string;
+				} catch {
+					return md;
+				}
+			}
+
+			function createRepoCard(repo: Repo): HTMLLIElement {
+				const li = document.createElement('li');
+				li.className = 'border rounded-lg bg-white dark:bg-gray-900 transition hover:shadow-lg dark:border-gray-700';
+
+				const languageHtml = repo.language ? `
+					<span>
+						<span class="inline-block w-3 h-3 rounded-full mr-1 align-middle" style="background-color: ${repo.languageColor || '#ccc'}"></span>
+						${repo.language}
+					</span>
+				` : '';
+
+				const summaryHtml = renderMarkdown(repo.summary);
+
+				li.innerHTML = `
+					<a href="${repo.url}" target="_blank" rel="noopener noreferrer" class="block p-4 text-current no-underline">
+						<div class="text-lg font-semibold text-blue-600 dark:text-blue-400">${repo.title}</div>
+						<div class="mt-1 text-gray-700 dark:text-gray-300 prose prose-sm dark:prose-invert max-w-none">${summaryHtml}</div>
+						<div class="flex flex-wrap gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
+							${languageHtml}
+							<span class="flex items-center gap-1">
+								<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+								</svg>
+								${repo.stars}（+${repo.addStars}）
+							</span>
+							<span class="flex items-center gap-1">
+								<svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+								</svg>
+								${repo.forks}
+							</span>
+						</div>
+					</a>
+				`;
+
+				return li;
+			}
+
+			function showError(message: string): void {
+				document.getElementById('loading')!.classList.add('hidden');
+				document.getElementById('content')!.classList.add('hidden');
+				const errorEl = document.getElementById('error')!;
+				errorEl.textContent = `Error: ${message}`;
+				errorEl.classList.remove('hidden');
+			}
+
+			interface Data {
+				generatedAt?: string;
+				items: Repo[];
+			}
+
+			function showContent(data: Data): void {
+				document.getElementById('loading')!.classList.add('hidden');
+				document.getElementById('error')!.classList.add('hidden');
+				document.getElementById('content')!.classList.remove('hidden');
+
+				if (data.generatedAt) {
+					document.getElementById('generated-at')!.textContent = formatDate(data.generatedAt);
+				}
+
+				const reposList = document.getElementById('repos')!;
+				reposList.innerHTML = '';
+
+				for (const repo of data.items) {
+					reposList.appendChild(createRepoCard(repo));
+				}
+			}
+
+			async function loadData(): Promise<void> {
+				try {
+					const res = await fetch(DATA_URL);
+					if (!res.ok) {
+						throw new Error(`HTTP ${res.status}`);
+					}
+					const data: Data = await res.json();
+
+					if (!data.items || !Array.isArray(data.items)) {
+						throw new Error('Invalid data format');
+					}
+
+					showContent(data);
+				} catch (e) {
+					showError(e instanceof Error ? e.message : 'Unknown error');
+				}
+			}
+
+			loadData();
+		</script>
+	</body>
+</html>
