@@ -2,7 +2,7 @@ name: Run
 
 on:
   schedule:
-    - cron: "0 8 * * *" # 日本時間 05:00
+    - cron: "0 20 * * *" # 日本時間 05:00 (UTC 20:00)
   workflow_dispatch: # 手動実行も可能に
 
 env:

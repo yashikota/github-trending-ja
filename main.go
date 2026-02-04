@@ -500,18 +500,7 @@ func buildDiscordMessages(repos []TrendingRepoWithSummary, generatedAt time.Time
 		}
 
 		batch := repos[i:end]
-		embeds := make([]DiscordEmbed, 0, len(batch)+1)
-
-		// 最初のバッチにはヘッダーを追加
-		if i == 0 {
-			embeds = append(embeds, DiscordEmbed{
-				Title:       "GitHub Trending 日本語まとめ",
-				Description: fmt.Sprintf("本日のトレンドリポジトリ %d 件を収集しました", totalRepos),
-				URL:         siteURL,
-				Color:       0x2EA44F, // GitHub Green
-				Timestamp:   generatedAt.Format(time.RFC3339),
-			})
-		}
+		embeds := make([]DiscordEmbed, 0, len(batch))
 
 		// リポジトリ情報をEmbedに変換
 		for _, repo := range batch {
@@ -520,16 +509,10 @@ func buildDiscordMessages(repos []TrendingRepoWithSummary, generatedAt time.Time
 				lang = "不明"
 			}
 
-			// 要約を短縮（100文字以内）
-			summary := repo.Summary
-			if len(summary) > 100 {
-				summary = summary[:97] + "..."
-			}
-
 			embed := DiscordEmbed{
 				Title:       repo.Title,
 				URL:         repo.URL,
-				Description: summary,
+				Description: repo.Summary,
 				Color:       languageToColor(repo.LanguageColor),
 				Fields: []DiscordEmbedField{
 					{Name: "言語", Value: lang, Inline: true},
