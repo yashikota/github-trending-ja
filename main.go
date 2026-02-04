@@ -86,6 +86,27 @@ type RSSItem struct {
 	PubDate     string `xml:"pubDate"`
 }
 
+// Discord Webhook構造体
+type DiscordWebhookPayload struct {
+	Content string         `json:"content,omitempty"`
+	Embeds  []DiscordEmbed `json:"embeds,omitempty"`
+}
+
+type DiscordEmbed struct {
+	Title       string              `json:"title,omitempty"`
+	Description string              `json:"description,omitempty"`
+	URL         string              `json:"url,omitempty"`
+	Color       int                 `json:"color,omitempty"`
+	Fields      []DiscordEmbedField `json:"fields,omitempty"`
+	Timestamp   string              `json:"timestamp,omitempty"`
+}
+
+type DiscordEmbedField struct {
+	Name   string `json:"name"`
+	Value  string `json:"value"`
+	Inline bool   `json:"inline,omitempty"`
+}
+
 const (
 	trendingAPIURL   = "https://raw.githubusercontent.com/isboyjc/github-trending-api/main/data/daily/all.json"
 	outputPath       = "./public/data.json"
@@ -113,6 +134,12 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("OLLAMA_MODEL is not set")
 	}
 	log.Printf("Using Ollama at %s with model %s", ollamaURL, ollamaModel)
+
+	// Discord Webhook設定取得（オプショナル）
+	discordWebhookURL := os.Getenv("DISCORD_WEBHOOK_URL")
+	if discordWebhookURL != "" {
+		log.Println("Discord notification enabled")
+	}
 
 	// 2. GitHubクライアント初期化
 	ghClient := github.NewClient(nil)
@@ -190,6 +217,9 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("failed to write RSS: %w", err)
 	}
 	log.Printf("Successfully wrote RSS feed to %s", feedPath)
+
+	// 8. Discord通知
+	sendDiscordNotification(ctx, discordWebhookURL, results, generatedAt)
 
 	return nil
 }
@@ -401,4 +431,131 @@ func writeRSS(path string, repos []TrendingRepoWithSummary, generatedAt time.Tim
 	}
 
 	return nil
+}
+
+// sendDiscordNotification はDiscord Webhookに通知を送信する
+// エラーが発生しても処理は継続（ログ出力のみ）
+func sendDiscordNotification(ctx context.Context, webhookURL string, repos []TrendingRepoWithSummary, generatedAt time.Time) {
+	if webhookURL == "" {
+		return
+	}
+
+	log.Println("Sending Discord notification...")
+
+	// メッセージを分割して送信
+	messages := buildDiscordMessages(repos, generatedAt)
+
+	for i, msg := range messages {
+		if err := postDiscordWebhook(ctx, webhookURL, msg); err != nil {
+			log.Printf("WARN: failed to send Discord notification (%d/%d): %v", i+1, len(messages), err)
+			continue
+		}
+
+		// Rate limit対策：複数メッセージ間に短い待機
+		if i < len(messages)-1 {
+			time.Sleep(500 * time.Millisecond)
+		}
+	}
+
+	log.Println("Discord notification completed")
+}
+
+// postDiscordWebhook は単一のWebhookリクエストを送信する
+func postDiscordWebhook(ctx context.Context, webhookURL string, payload DiscordWebhookPayload) error {
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshal payload: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, webhookURL, bytes.NewReader(jsonData))
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("do request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// buildDiscordMessages はリポジトリ一覧をDiscordメッセージに変換する
+func buildDiscordMessages(repos []TrendingRepoWithSummary, generatedAt time.Time) []DiscordWebhookPayload {
+	const reposPerMessage = 1 // 1メッセージあたりのリポジトリ数
+
+	var messages []DiscordWebhookPayload
+	totalRepos := len(repos)
+
+	for i := 0; i < totalRepos; i += reposPerMessage {
+		end := i + reposPerMessage
+		if end > totalRepos {
+			end = totalRepos
+		}
+
+		batch := repos[i:end]
+		embeds := make([]DiscordEmbed, 0, len(batch)+1)
+
+		// 最初のバッチにはヘッダーを追加
+		if i == 0 {
+			embeds = append(embeds, DiscordEmbed{
+				Title:       "GitHub Trending 日本語まとめ",
+				Description: fmt.Sprintf("本日のトレンドリポジトリ %d 件を収集しました", totalRepos),
+				URL:         siteURL,
+				Color:       0x2EA44F, // GitHub Green
+				Timestamp:   generatedAt.Format(time.RFC3339),
+			})
+		}
+
+		// リポジトリ情報をEmbedに変換
+		for _, repo := range batch {
+			lang := repo.Language
+			if lang == "" {
+				lang = "不明"
+			}
+
+			// 要約を短縮（100文字以内）
+			summary := repo.Summary
+			if len(summary) > 100 {
+				summary = summary[:97] + "..."
+			}
+
+			embed := DiscordEmbed{
+				Title:       repo.Title,
+				URL:         repo.URL,
+				Description: summary,
+				Color:       languageToColor(repo.LanguageColor),
+				Fields: []DiscordEmbedField{
+					{Name: "言語", Value: lang, Inline: true},
+					{Name: "スター", Value: fmt.Sprintf("%s (+%s)", repo.Stars, repo.AddStars), Inline: true},
+				},
+			}
+			embeds = append(embeds, embed)
+		}
+
+		messages = append(messages, DiscordWebhookPayload{
+			Embeds: embeds,
+		})
+	}
+
+	return messages
+}
+
+// languageToColor はHTML色コードをDiscord色整数に変換
+func languageToColor(htmlColor string) int {
+	if htmlColor == "" {
+		return 0x7289DA // Discord Blurple (default)
+	}
+
+	// "#RRGGBB" -> int
+	color := strings.TrimPrefix(htmlColor, "#")
+	var result int
+	fmt.Sscanf(color, "%x", &result)
+	return result
 }

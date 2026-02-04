@@ -48,6 +48,7 @@ jobs:
         run: go run .
         env:
           OLLAMA_MODEL: ${{ env.OLLAMA_MODEL }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_TOKEN }}
 
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
 
