@@ -2,11 +2,11 @@ name: Run
 
 on:
   schedule:
-    - cron: "0 20 * * *" # 日本時間 05:00 (UTC 20:00)
+    - cron: "0 20 * * *" # 日本時間 05:00
   workflow_dispatch: # 手動実行も可能に
 
 env:
-  OLLAMA_MODEL: translategemma:4b
+  OLLAMA_MODEL: glm-4.7-flash:q4_K_M
 
 jobs:
   generate:
