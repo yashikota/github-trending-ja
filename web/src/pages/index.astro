@@ -110,8 +110,8 @@ import '../styles/global.css';
 				const summaryHtml = renderMarkdown(repo.summary);
 
 				li.innerHTML = `
-					<a href="${repo.url}" target="_blank" rel="noopener noreferrer" class="block p-4 text-current no-underline">
-						<div class="text-lg font-semibold text-blue-600 dark:text-blue-400">${repo.title}</div>
+					<div class="block p-4 cursor-pointer" data-url="${repo.url}">
+						<a href="${repo.url}" target="_blank" rel="noopener noreferrer" class="text-lg font-semibold text-blue-600 dark:text-blue-400 no-underline hover:underline">${repo.title}</a>
 						<div class="mt-1 text-gray-700 dark:text-gray-300 prose prose-sm dark:prose-invert max-w-none">${summaryHtml}</div>
 						<div class="flex flex-wrap gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
 							${languageHtml}
@@ -128,8 +128,18 @@ import '../styles/global.css';
 								${repo.forks}
 							</span>
 						</div>
-					</a>
+					</div>
 				`;
+
+				// Card click handler (excludes clicks on links inside summary)
+				const card = li.querySelector("[data-url]") as HTMLElement;
+				card.addEventListener("click", (e: MouseEvent) => {
+					const target = e.target as HTMLElement;
+					if (target.tagName === "A" || target.closest("a")) {
+						return;
+					}
+					window.open(repo.url, "_blank", "noopener,noreferrer");
+				});
 
 				return li;
 			}
