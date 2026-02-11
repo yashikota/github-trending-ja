@@ -3,10 +3,10 @@ name: Run
 on:
   schedule:
     - cron: "0 20 * * *" # 日本時間 05:00
-  workflow_dispatch: # 手動実行も可能に
+  workflow_dispatch:
 
 env:
-  OLLAMA_MODEL: glm-4.7-flash:q4_K_M
+  OLLAMA_MODEL: gpt-oss:20b
 
 jobs:
   generate:
