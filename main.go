@@ -148,7 +148,7 @@ func run(ctx context.Context) error {
 	ollamaClient := &OllamaClient{
 		BaseURL: ollamaURL,
 		Model:   ollamaModel,
-		HTTP:    httpClient,
+		HTTP:    &http.Client{Timeout: 30 * time.Minute},
 	}
 
 	// 4. Trending取得
