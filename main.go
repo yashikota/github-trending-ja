@@ -41,6 +41,7 @@ type TrendingRepo struct {
 type TrendingRepoWithSummary struct {
 	Title         string        `json:"title"`
 	URL           string        `json:"url"`
+	DeepWikiURL   string        `json:"deepWikiUrl"`
 	Description   string        `json:"description"`
 	Summary       string        `json:"summary"`
 	Language      string        `json:"language,omitempty"`
@@ -189,6 +190,7 @@ func run(ctx context.Context) error {
 		results = append(results, TrendingRepoWithSummary{
 			Title:         repo.Title,
 			URL:           repo.URL,
+			DeepWikiURL:   buildDeepWikiURL(owner, name),
 			Description:   repo.Description,
 			Summary:       summary,
 			Language:      repo.Language,
@@ -517,6 +519,11 @@ func buildDiscordMessages(repos []TrendingRepoWithSummary, generatedAt time.Time
 				Fields: []DiscordEmbedField{
 					{Name: "言語", Value: lang, Inline: true},
 					{Name: "スター", Value: fmt.Sprintf("%s (+%s)", repo.Stars, repo.AddStars), Inline: true},
+					{
+						Name:   "リンク",
+						Value:  fmt.Sprintf("[GitHub](%s) | [DeepWiki](%s)", repo.URL, repo.DeepWikiURL),
+						Inline: false,
+					},
 				},
 			}
 			embeds = append(embeds, embed)
@@ -541,4 +548,8 @@ func languageToColor(htmlColor string) int {
 	var result int
 	fmt.Sscanf(color, "%x", &result)
 	return result
+}
+
+func buildDeepWikiURL(owner, repo string) string {
+	return fmt.Sprintf("https://deepwiki.com/%s/%s", owner, repo)
 }

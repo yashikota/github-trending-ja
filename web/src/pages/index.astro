@@ -80,6 +80,7 @@ import '../styles/global.css';
 			interface Repo {
 				title: string;
 				url: string;
+				deepWikiUrl?: string;
 				summary: string;
 				language?: string;
 				languageColor?: string;
@@ -113,6 +114,10 @@ import '../styles/global.css';
 					<div class="block p-4 cursor-pointer" data-url="${repo.url}">
 						<a href="${repo.url}" target="_blank" rel="noopener noreferrer" class="text-lg font-semibold text-blue-600 dark:text-blue-400 no-underline hover:underline">${repo.title}</a>
 						<div class="mt-1 text-gray-700 dark:text-gray-300 prose prose-sm dark:prose-invert max-w-none">${summaryHtml}</div>
+						<div class="mt-3 flex flex-wrap gap-2">
+							<a href="${repo.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white no-underline transition hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300">GitHub</a>
+							${repo.deepWikiUrl ? `<a href="${repo.deepWikiUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white no-underline transition hover:bg-emerald-500">DeepWiki</a>` : ''}
+						</div>
 						<div class="flex flex-wrap gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
 							${languageHtml}
 							<span class="flex items-center gap-1">
