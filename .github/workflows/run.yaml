@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  OLLAMA_MODEL: gpt-oss:20b
+  OLLAMA_MODEL: hf.co/mmnga-o/NVIDIA-Nemotron-Nano-9B-v2-Japanese-gguf:Q4_K_M
 
 jobs:
   generate:
