@@ -1,35 +1,4 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "github>aquaproj/aqua-renovate-config#2.10.0",
-    "config:best-practices",
-    ":disableRateLimiting",
-    ":label(renovate)",
-    ":timezone(Asia/Tokyo)"
-  ],
-  "configMigration": true,
-  "minimumReleaseAge": "7 days",
-  "dependencyDashboard": false,
-  "packageRules": [
-    {
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "pin",
-        "digest",
-        "lockFileMaintenance",
-        "rollback"
-      ],
-      "automerge": true,
-      "automergeType": "pr"
-    },
-    {
-      "matchDatasources": ["docker"],
-      "labels": ["docker-update"]
-    },
-    {
-      "matchPackageNames": ["aquaproj/aqua-registry"],
-      "extends": ["schedule:earlyMondays"]
-    }
-  ]
+  "extends": ["github>Univearth/renovate-config"]
 }
