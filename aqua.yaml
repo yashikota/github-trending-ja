@@ -12,4 +12,4 @@ registries:
   ref: v4.476.0 # renovate: depName=aquaproj/aqua-registry
 packages:
 - name: suzuki-shunsuke/pinact@v3.9.0
-- name: ollama/ollama@v0.17.5
+- name: ollama/ollama@v0.17.6
