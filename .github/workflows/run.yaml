@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  OLLAMA_MODEL: hf.co/unsloth/Qwen3.5-4B-GGUF:UD-Q4_K_XL
+  OLLAMA_MODEL: gpt-oss:20b
 
 jobs:
   generate:
