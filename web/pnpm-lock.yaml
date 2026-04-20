@@ -16,7 +16,7 @@ importers:
         version: 6.1.7(jiti@2.6.1)(lightningcss@1.32.0)(rollup@4.60.2)(typescript@5.9.3)
       marked:
         specifier: ^18.0.0
-        version: 18.0.0
+        version: 18.0.1
       tailwindcss:
         specifier: ^4.1.18
         version: 4.2.2
@@ -1077,8 +1077,8 @@ packages:
   markdown-table@3.0.4:
     resolution: {integrity: sha512-wiYz4+JrLyb/DqW2hkFJxP7Vd7JuTDm77fvbM8VfEQdmSMqcImWeeRbHwZjBjIFki/VaMK2BhFi7oUUZeM5bqw==}
 
-  marked@18.0.0:
-    resolution: {integrity: sha512-2e7Qiv/HJSXj8rDEpgTvGKsP8yYtI9xXHKDnrftrmnrJPaFNM7VRb2YCzWaX4BP1iCJ/XPduzDJZMFoqTCcIMA==}
+  marked@18.0.1:
+    resolution: {integrity: sha512-IILJE4Aap/KIGu4ZRCzQcYMxkhumblXnbqfQe+HAD4f982wrRAsJEGKGM653yAioS6g3Yq3yOhjrUebcrtOgRA==}
     engines: {node: '>= 20'}
     hasBin: true
 
@@ -2609,7 +2609,7 @@ snapshots:
 
   markdown-table@3.0.4: {}
 
-  marked@18.0.0: {}
+  marked@18.0.1: {}
 
   mdast-util-definitions@6.0.0:
     dependencies:
