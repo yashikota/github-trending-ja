@@ -6,7 +6,9 @@ on:
   workflow_dispatch:
 
 env:
-  OLLAMA_MODEL: gpt-oss:20b
+  LLAMA_CPP_REF: b8746
+  LLAMA_CPP_MODEL: gemma4:e4b
+  LLAMA_CPP_HF_MODEL: bartowski/google_gemma-4-E4B-it-GGUF:Q4_K_M
 
 jobs:
   generate:
@@ -23,31 +25,49 @@ jobs:
         with:
           go-version-file: go.mod
 
-      # Ollamaのインストール
-      - name: Install Ollama
-        run: curl -fsSL https://ollama.com/install.sh | sh
-
-      # Ollamaモデルのキャッシュ
-      - name: Cache Ollama models
+      - name: Cache llama.cpp build
+        id: cache-llama-cpp
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-          path: ~/.ollama/models
-          key: ollama-${{ env.OLLAMA_MODEL }}
+          path: /tmp/llama.cpp/build
+          key: llama-cpp-${{ env.LLAMA_CPP_REF }}-${{ runner.os }}
 
-      # Ollamaサーバーを起動
-      - name: Start Ollama server
+      - name: Build llama.cpp
+        if: steps.cache-llama-cpp.outputs.cache-hit != 'true'
         run: |
-          ollama serve &
-          sleep 5
+          git clone --depth 1 --branch ${{ env.LLAMA_CPP_REF }} https://github.com/ggml-org/llama.cpp.git /tmp/llama.cpp
+          cmake -S /tmp/llama.cpp -B /tmp/llama.cpp/build -DLLAMA_BUILD_TESTS=OFF
+          cmake --build /tmp/llama.cpp/build --config Release --target llama-server -j "$(nproc)"
 
-      # モデルをpull
-      - name: Pull Ollama model
-        run: ollama pull ${{ env.OLLAMA_MODEL }}
+      - name: Cache Hugging Face models
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ~/.cache/huggingface
+          key: llama-model-gemma4-e4b-q4-k-m
+
+      - name: Start llama-server
+        run: |
+          /tmp/llama.cpp/build/bin/llama-server \
+            -hf "${{ env.LLAMA_CPP_HF_MODEL }}" \
+            --alias "${{ env.LLAMA_CPP_MODEL }}" \
+            --host 127.0.0.1 \
+            --port 8080 \
+            --ctx-size 12000 &
+
+          for i in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:8080/health; then
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "llama-server did not become healthy" >&2
+          exit 1
 
       - name: Run
         run: go run .
         env:
-          OLLAMA_MODEL: ${{ env.OLLAMA_MODEL }}
+          LLAMA_CPP_MODEL: ${{ env.LLAMA_CPP_MODEL }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_TOKEN }}
 
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0

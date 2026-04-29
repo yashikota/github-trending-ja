@@ -109,11 +109,12 @@ type DiscordEmbedField struct {
 }
 
 const (
-	trendingAPIURL   = "https://raw.githubusercontent.com/isboyjc/github-trending-api/main/data/daily/all.json"
-	outputPath       = "./public/data.json"
-	feedPath         = "./public/feed.xml"
-	siteURL          = "https://github-trending-ja.yashikota.com"
-	defaultOllamaURL = "http://localhost:11434"
+	trendingAPIURL  = "https://raw.githubusercontent.com/isboyjc/github-trending-api/main/data/daily/all.json"
+	outputPath      = "./public/data.json"
+	feedPath        = "./public/feed.xml"
+	siteURL         = "https://github-trending-ja.yashikota.com"
+	defaultLlamaURL = "http://127.0.0.1:8080"
+	defaultModel    = "gemma4:e4b"
 )
 
 var httpClient = &http.Client{Timeout: 5 * time.Minute}
@@ -125,16 +126,18 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	// 1. Ollama設定取得
-	ollamaURL := os.Getenv("OLLAMA_HOST")
-	if ollamaURL == "" {
-		ollamaURL = defaultOllamaURL
+	// 1. llama.cpp設定取得
+	llamaURL := os.Getenv("LLAMA_CPP_BASE_URL")
+	if llamaURL == "" {
+		llamaURL = defaultLlamaURL
 	}
-	ollamaModel := os.Getenv("OLLAMA_MODEL")
-	if ollamaModel == "" {
-		return fmt.Errorf("OLLAMA_MODEL is not set")
+	llamaURL = strings.TrimRight(llamaURL, "/")
+
+	llamaModel := os.Getenv("LLAMA_CPP_MODEL")
+	if llamaModel == "" {
+		llamaModel = defaultModel
 	}
-	log.Printf("Using Ollama at %s with model %s", ollamaURL, ollamaModel)
+	log.Printf("Using llama.cpp at %s with model %s", llamaURL, llamaModel)
 
 	// Discord Webhook設定取得（オプショナル）
 	discordWebhookURL := os.Getenv("DISCORD_WEBHOOK_URL")
@@ -145,10 +148,10 @@ func run(ctx context.Context) error {
 	// 2. GitHubクライアント初期化
 	ghClient := github.NewClient(nil)
 
-	// 3. Ollamaクライアント初期化
-	ollamaClient := &OllamaClient{
-		BaseURL: ollamaURL,
-		Model:   ollamaModel,
+	// 3. llama.cppクライアント初期化
+	llamaClient := &LlamaCppClient{
+		BaseURL: llamaURL,
+		Model:   llamaModel,
 		HTTP:    &http.Client{Timeout: 30 * time.Minute},
 	}
 
@@ -181,7 +184,7 @@ func run(ctx context.Context) error {
 		}
 
 		// 要約生成
-		summary, err := ollamaClient.Summarize(ctx, readme)
+		summary, err := llamaClient.Summarize(ctx, readme)
 		if err != nil {
 			log.Printf("WARN: failed to summarize: %v", err)
 			summary = "要約失敗"
@@ -264,27 +267,35 @@ func fetchReadme(ctx context.Context, client *github.Client, owner, name string)
 	return content, nil
 }
 
-// OllamaClient はOllama APIクライアント
-type OllamaClient struct {
+// LlamaCppClient はllama.cppのOpenAI互換APIクライアント
+type LlamaCppClient struct {
 	BaseURL string
 	Model   string
 	HTTP    *http.Client
 }
 
-// OllamaRequest はOllama APIへのリクエスト
-type OllamaRequest struct {
-	Model  string `json:"model"`
-	Prompt string `json:"prompt"`
-	Stream bool   `json:"stream"`
+type ChatCompletionRequest struct {
+	Model              string         `json:"model"`
+	Messages           []ChatMessage  `json:"messages"`
+	Stream             bool           `json:"stream"`
+	MaxTokens          int            `json:"max_tokens"`
+	Temperature        float64        `json:"temperature"`
+	ChatTemplateKwargs map[string]any `json:"chat_template_kwargs,omitempty"`
 }
 
-// OllamaResponse はOllama APIからのレスポンス
-type OllamaResponse struct {
-	Response string `json:"response"`
+type ChatMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type ChatCompletionResponse struct {
+	Choices []struct {
+		Message ChatMessage `json:"message"`
+	} `json:"choices"`
 }
 
 // Summarize はREADMEを日本語で要約する
-func (c *OllamaClient) Summarize(ctx context.Context, readme string) (string, error) {
+func (c *LlamaCppClient) Summarize(ctx context.Context, readme string) (string, error) {
 	// READMEが空の場合
 	if readme == "" {
 		return "説明なし", nil
@@ -296,15 +307,24 @@ func (c *OllamaClient) Summarize(ctx context.Context, readme string) (string, er
 		readme = readme[:maxReadmeLen]
 	}
 
-	prompt := fmt.Sprintf(
-		"以下のREADMEの内容を日本語で短く要約せよ。100文字以内で\n\n%s",
-		readme,
-	)
-
-	reqBody := OllamaRequest{
-		Model:  c.Model,
-		Prompt: prompt,
-		Stream: false,
+	reqBody := ChatCompletionRequest{
+		Model: c.Model,
+		Messages: []ChatMessage{
+			{
+				Role:    "system",
+				Content: "あなたはGitHubリポジトリのREADMEを日本語で短く要約するアシスタントです。出力は100文字以内の日本語要約のみとし、前置きや箇条書きは不要です。",
+			},
+			{
+				Role:    "user",
+				Content: fmt.Sprintf("以下のREADMEの内容を日本語で短く要約せよ。\n\n%s", readme),
+			},
+		},
+		Stream:      false,
+		MaxTokens:   160,
+		Temperature: 0.2,
+		ChatTemplateKwargs: map[string]any{
+			"enable_thinking": false,
+		},
 	}
 
 	jsonData, err := json.Marshal(reqBody)
@@ -312,7 +332,7 @@ func (c *OllamaClient) Summarize(ctx context.Context, readme string) (string, er
 		return "", fmt.Errorf("marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL+"/api/generate", bytes.NewReader(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL+"/v1/chat/completions", bytes.NewReader(jsonData))
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
 	}
@@ -328,16 +348,16 @@ func (c *OllamaClient) Summarize(ctx context.Context, readme string) (string, er
 		return "", fmt.Errorf("unexpected status: %d", resp.StatusCode)
 	}
 
-	var ollamaResp OllamaResponse
-	if err := json.NewDecoder(resp.Body).Decode(&ollamaResp); err != nil {
+	var chatResp ChatCompletionResponse
+	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
 		return "", fmt.Errorf("decode response: %w", err)
 	}
 
-	if ollamaResp.Response == "" {
+	if len(chatResp.Choices) == 0 || chatResp.Choices[0].Message.Content == "" {
 		return "要約失敗", nil
 	}
 
-	return strings.TrimSpace(ollamaResp.Response), nil
+	return strings.TrimSpace(chatResp.Choices[0].Message.Content), nil
 }
 
 func writeJSON(path string, data any) error {
