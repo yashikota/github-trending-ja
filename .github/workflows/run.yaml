@@ -13,6 +13,7 @@ env:
 jobs:
   generate:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: read
       pages: write
@@ -52,7 +53,7 @@ jobs:
             --alias "${{ env.LLAMA_CPP_MODEL }}" \
             --host 127.0.0.1 \
             --port 8080 \
-            --ctx-size 12000 &
+            --ctx-size 4096 &
 
           for i in $(seq 1 120); do
             if curl -fsS http://127.0.0.1:8080/health; then

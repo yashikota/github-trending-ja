@@ -301,8 +301,8 @@ func (c *LlamaCppClient) Summarize(ctx context.Context, readme string) (string, 
 		return "説明なし", nil
 	}
 
-	// READMEが長すぎる場合は切り詰め（トークン節約）
-	const maxReadmeLen = 10000
+	// READMEが長すぎる場合は切り詰め（CPU推論の時間を抑える）
+	const maxReadmeLen = 2000
 	if len(readme) > maxReadmeLen {
 		readme = readme[:maxReadmeLen]
 	}
@@ -320,7 +320,7 @@ func (c *LlamaCppClient) Summarize(ctx context.Context, readme string) (string, 
 			},
 		},
 		Stream:      false,
-		MaxTokens:   160,
+		MaxTokens:   80,
 		Temperature: 0.2,
 		ChatTemplateKwargs: map[string]any{
 			"enable_thinking": false,
