@@ -114,7 +114,6 @@ const (
 	feedPath        = "./public/feed.xml"
 	siteURL         = "https://github-trending-ja.yashikota.com"
 	defaultLlamaURL = "http://127.0.0.1:8080"
-	defaultModel    = "gemma4:e4b"
 )
 
 var httpClient = &http.Client{Timeout: 5 * time.Minute}
@@ -132,12 +131,7 @@ func run(ctx context.Context) error {
 		llamaURL = defaultLlamaURL
 	}
 	llamaURL = strings.TrimRight(llamaURL, "/")
-
-	llamaModel := os.Getenv("LLAMA_CPP_MODEL")
-	if llamaModel == "" {
-		llamaModel = defaultModel
-	}
-	log.Printf("Using llama.cpp at %s with model %s", llamaURL, llamaModel)
+	log.Printf("Using llama.cpp at %s", llamaURL)
 
 	// Discord Webhook設定取得（オプショナル）
 	discordWebhookURL := os.Getenv("DISCORD_WEBHOOK_URL")
@@ -151,7 +145,6 @@ func run(ctx context.Context) error {
 	// 3. llama.cppクライアント初期化
 	llamaClient := &LlamaCppClient{
 		BaseURL: llamaURL,
-		Model:   llamaModel,
 		HTTP:    &http.Client{Timeout: 30 * time.Minute},
 	}
 
@@ -270,17 +263,14 @@ func fetchReadme(ctx context.Context, client *github.Client, owner, name string)
 // LlamaCppClient はllama.cppのOpenAI互換APIクライアント
 type LlamaCppClient struct {
 	BaseURL string
-	Model   string
 	HTTP    *http.Client
 }
 
 type ChatCompletionRequest struct {
-	Model              string         `json:"model"`
-	Messages           []ChatMessage  `json:"messages"`
-	Stream             bool           `json:"stream"`
-	MaxTokens          int            `json:"max_tokens"`
-	Temperature        float64        `json:"temperature"`
-	ChatTemplateKwargs map[string]any `json:"chat_template_kwargs,omitempty"`
+	Messages    []ChatMessage `json:"messages"`
+	Stream      bool          `json:"stream"`
+	MaxTokens   int           `json:"max_tokens"`
+	Temperature float64       `json:"temperature"`
 }
 
 type ChatMessage struct {
@@ -308,7 +298,6 @@ func (c *LlamaCppClient) Summarize(ctx context.Context, readme string) (string, 
 	}
 
 	reqBody := ChatCompletionRequest{
-		Model: c.Model,
 		Messages: []ChatMessage{
 			{
 				Role:    "system",
@@ -322,9 +311,6 @@ func (c *LlamaCppClient) Summarize(ctx context.Context, readme string) (string, 
 		Stream:      false,
 		MaxTokens:   80,
 		Temperature: 0.2,
-		ChatTemplateKwargs: map[string]any{
-			"enable_thinking": false,
-		},
 	}
 
 	jsonData, err := json.Marshal(reqBody)
