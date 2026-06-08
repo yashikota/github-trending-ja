@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  LLAMA_CPP_REF: b8746
+  LLAMA_CPP_REF: b9553
   LLAMA_CPP_MODEL: gemma4:e2b
   LLAMA_CPP_HF_MODEL: google/gemma-4-E2B-it-qat-q4_0-gguf:Q4_0
 
