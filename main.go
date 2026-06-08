@@ -114,7 +114,7 @@ const (
 	feedPath        = "./public/feed.xml"
 	siteURL         = "https://github-trending-ja.yashikota.com"
 	defaultLlamaURL = "http://127.0.0.1:8080"
-	defaultModel    = "gemma4:e4b"
+	defaultModel    = "gemma4:e2b"
 )
 
 var httpClient = &http.Client{Timeout: 5 * time.Minute}
