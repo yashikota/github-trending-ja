@@ -1,10 +1,11 @@
 module github.com/yashikota/github-trending-ja
 
-go 1.25.5
+go 1.26.0
 
 require (
 	github.com/google/go-github/v81 v81.0.0
 	github.com/google/go-github/v89 v89.0.0
+	github.com/google/go-github/v91 v91.0.0
 )
 
 require github.com/google/go-querystring v1.2.0 // indirect
